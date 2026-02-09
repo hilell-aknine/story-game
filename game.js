@@ -3,8 +3,8 @@
 // ═══════════════════════════════════════
 // Supabase Init
 // ═══════════════════════════════════════
-const SUPABASE_URL = 'https://eimcudmlfjlyxjyrdcgc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbWN1ZG1sZmpseXhqeXJkY2djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0MTA5MDYsImV4cCI6MjA4NDk4NjkwNn0.ESXViZ0DZxopHxHNuC6vRn3iIZz1KZkQcXwgLhK_nQw';
+const SUPABASE_URL = 'https://vrjrnnmbaankcococoeu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyanJubm1iYWFua2NvY29jb2V1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MDU0MTgsImV4cCI6MjA4NjE4MTQxOH0.MtBgdNjF7EyCdK0IHA9aBWZpSTk1q3IajJMuerO7vno';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const HEART_RECOVERY_MINUTES = 20;
