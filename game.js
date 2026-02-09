@@ -1540,7 +1540,7 @@ ${answers.message || ''}`;
         const tip = this.createExerciseTip('fill-blank');
 
         const wordsHtml = this.shuffleArray([...exercise.options]).map((word, index) => `
-            <button class="word-chip" onclick="game.selectWord(${exercise.options.indexOf(word)}, '${word}')">${word}</button>
+            <button class="word-chip" data-word-index="${exercise.options.indexOf(word)}" onclick="game.selectWord(this)">${word}</button>
         `).join('');
 
         container.innerHTML = `
@@ -1560,18 +1560,17 @@ ${answers.message || ''}`;
         `;
     }
 
-    selectWord(index, word) {
+    selectWord(el) {
         if (this.exerciseAnswered) return;
         this.sound.play('click');
+        const index = parseInt(el.dataset.wordIndex);
+        const word = el.textContent;
         this.selectedAnswer = index;
         document.getElementById('blank-slot').textContent = word;
         document.getElementById('blank-slot').classList.add('filled');
 
         document.querySelectorAll('.word-chip').forEach((chip) => {
-            chip.classList.remove('selected');
-            if (chip.textContent === word) {
-                chip.classList.add('selected');
-            }
+            chip.classList.toggle('selected', chip === el);
         });
 
         this.enableCheckButton();
@@ -1708,7 +1707,7 @@ ${answers.message || ''}`;
                 <div class="exercise-type">זיהוי בטקסט</div>
                 <div class="exercise-question">${exercise.question}</div>
                 <div class="identify-instructions">סמנו את החלק הרלוונטי בטקסט</div>
-                <div class="identify-text" id="identify-text" onmouseup="game.handleTextSelection()">${exercise.text}</div>
+                <div class="identify-text" id="identify-text" onmouseup="game.handleTextSelection()" ontouchend="setTimeout(function(){game.handleTextSelection()}, 100)">${exercise.text}</div>
                 <div class="mentor-tip">
                     <img class="mentor-tip-icon" src="mentor-gal.png" alt="גל" />
                     <span class="mentor-tip-text">${tip}</span>
@@ -1953,9 +1952,12 @@ ${answers.message || ''}`;
 
         switch (exercise.type) {
             case 'multiple-choice':
-            case 'fill-blank':
                 isCorrect = this.selectedAnswer === exercise.correct;
                 this.showMultipleChoiceFeedback(isCorrect, exercise);
+                break;
+            case 'fill-blank':
+                isCorrect = this.selectedAnswer === exercise.correct;
+                this.showFillBlankFeedback(isCorrect, exercise);
                 break;
             case 'order':
                 isCorrect = this.checkOrderAnswer(exercise);
@@ -2029,6 +2031,29 @@ ${answers.message || ''}`;
                 btn.classList.add('incorrect');
             }
         });
+    }
+
+    showFillBlankFeedback(isCorrect, exercise) {
+        const blankSlot = document.getElementById('blank-slot');
+        if (blankSlot) {
+            blankSlot.classList.add(isCorrect ? 'correct' : 'incorrect');
+        }
+        const correctWord = exercise.options[exercise.correct];
+        document.querySelectorAll('.word-chip').forEach(chip => {
+            if (chip.textContent === correctWord) {
+                chip.classList.add('correct');
+            } else if (chip.classList.contains('selected') && !isCorrect) {
+                chip.classList.add('incorrect');
+            }
+        });
+        // Show correct word in blank if wrong
+        if (!isCorrect && blankSlot) {
+            setTimeout(() => {
+                blankSlot.textContent = correctWord;
+                blankSlot.classList.remove('incorrect');
+                blankSlot.classList.add('correct');
+            }, 800);
+        }
     }
 
     showOrderFeedback(isCorrect) {

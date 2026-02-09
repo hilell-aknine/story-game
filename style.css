@@ -577,6 +577,31 @@ body {
     color: white;
 }
 
+.word-chip.correct {
+    background: var(--accent-green) !important;
+    border-color: var(--accent-green) !important;
+    color: white !important;
+}
+
+.word-chip.incorrect {
+    background: var(--accent-red) !important;
+    border-color: var(--accent-red) !important;
+    color: white !important;
+}
+
+.blank-slot.correct {
+    border-color: var(--accent-green) !important;
+    color: var(--accent-green) !important;
+    background: rgba(52, 211, 153, 0.1);
+}
+
+.blank-slot.incorrect {
+    border-color: var(--accent-red) !important;
+    color: var(--accent-red) !important;
+    background: rgba(251, 113, 133, 0.1);
+    text-decoration: line-through;
+}
+
 .word-chip.disabled {
     opacity: 0.35;
     cursor: not-allowed;
