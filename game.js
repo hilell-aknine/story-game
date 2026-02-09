@@ -876,7 +876,7 @@ class StoryGame {
         const xpNeeded = nextThreshold - currentThreshold;
         const progress = Math.min(100, (xpInLevel / xpNeeded) * 100);
         const xpToNext = nextThreshold - currentXP;
-        return { progress, xpToNext: Math.max(0, xpToNext) };
+        return { progress, xpToNext: Math.max(0, xpToNext), currentXP, nextThreshold };
     }
 
     // ═══════════════════════════════════════
@@ -1007,7 +1007,10 @@ class StoryGame {
             </div>
         `;
 
-        // Module nodes
+        // Module nodes — track unlock transitions
+        const previousLocked = this._previousLockedModules || [];
+        const currentLocked = [];
+
         MODULES.forEach((module, index) => {
             const progress = this.getModuleProgress(module.id);
             const isCompleted = progress === 100;
@@ -1016,6 +1019,9 @@ class StoryGame {
                 module.lessons && module.lessons.every(l =>
                     this.playerData.perfectLessonsList.includes(`${module.id}-${l.id}`)
                 );
+
+            if (isLocked) currentLocked.push(module.id);
+            const justUnlocked = previousLocked.includes(module.id) && !isLocked;
 
             let stateClass = 'available';
             let stateIcon = module.icon;
@@ -1029,6 +1035,8 @@ class StoryGame {
                 stateClass = 'completed';
                 stateIcon = '✅';
             }
+
+            if (justUnlocked) stateClass += ' just-unlocked';
 
             pathNodesHtml += `
                 <div class="home-path-node ${stateClass}"
@@ -1085,6 +1093,10 @@ class StoryGame {
                 <div class="level-progress-bar">
                     <div class="level-progress-fill" style="width: ${levelInfo.progress}%"></div>
                 </div>
+                <div class="level-xp-text">
+                    <span>${levelInfo.currentXP} XP</span>
+                    <span>${levelInfo.nextThreshold} XP</span>
+                </div>
             </div>
 
             <!-- מסלול למידה -->
@@ -1103,6 +1115,8 @@ class StoryGame {
                 </div>
             </div>
         `;
+
+        this._previousLockedModules = currentLocked;
 
         this.hideProgressBar();
         this.hideFooter();
@@ -1464,6 +1478,12 @@ ${answers.message || ''}`;
         }
 
         this.showFooter();
+
+        // Order exercises: check button must be enabled immediately
+        // (showFooter disables it, but order has no "selection" step)
+        if (exercise.type === 'order') {
+            this.enableCheckButton();
+        }
     }
 
     createExerciseTip(exerciseType) {

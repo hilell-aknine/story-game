@@ -593,6 +593,7 @@ body {
     background: var(--bg-overlay);
     border: 1px solid var(--border-light);
     border-radius: var(--r-md);
+    touch-action: none;
     padding: 14px 18px;
     cursor: grab;
     transition: all 0.2s var(--ease-out);
@@ -3693,6 +3694,12 @@ main,
     animation: achievement-pop-in 0.5s var(--ease-spring), rainbow-border 4s linear infinite;
 }
 
+@keyframes achievement-pop-in {
+    0% { transform: translateY(30px) scale(0.8); opacity: 0; }
+    50% { transform: translateY(-5px) scale(1.05); }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
 @keyframes rainbow-border {
     0%   { border-color: rgba(124, 92, 252, 0.5); }
     25%  { border-color: rgba(52, 211, 153, 0.5); }
@@ -3902,4 +3909,29 @@ main,
     60% { transform: rotate(8deg) scale(1.03); }
     75% { transform: rotate(-3deg) scale(1.01); }
     100% { transform: rotate(0) scale(1); }
+}
+
+/* ═══════════════════════════════════════
+   XP Current/Total Text
+   ═══════════════════════════════════════ */
+.level-xp-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+/* ═══════════════════════════════════════
+   Module Unlock Animation
+   ═══════════════════════════════════════ */
+.home-path-node.just-unlocked {
+    animation: module-unlock 0.8s var(--ease-spring);
+}
+
+@keyframes module-unlock {
+    0% { transform: scale(0.9); opacity: 0.4; filter: grayscale(1); }
+    50% { transform: scale(1.08); opacity: 1; filter: grayscale(0); }
+    100% { transform: scale(1); opacity: 1; }
 }
