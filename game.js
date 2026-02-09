@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════
 const SUPABASE_URL = 'https://vrjrnnmbaankcococoeu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyanJubm1iYWFua2NvY29jb2V1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MDU0MTgsImV4cCI6MjA4NjE4MTQxOH0.MtBgdNjF7EyCdK0IHA9aBWZpSTk1q3IajJMuerO7vno';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const HEART_RECOVERY_MINUTES = 20;
 
@@ -131,7 +131,7 @@ class AuthManager {
 
     async loginWithGoogle() {
         this.clearError();
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await _supabase.auth.signInWithOAuth({
             provider: 'google',
             options: { redirectTo: window.location.origin + window.location.pathname }
         });
@@ -147,7 +147,7 @@ class AuthManager {
             return;
         }
         this.setLoading('auth-login-btn', true);
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
         this.setLoading('auth-login-btn', false);
         if (error) {
             this.showError('אימייל או סיסמה שגויים');
@@ -170,7 +170,7 @@ class AuthManager {
             return;
         }
         this.setLoading('auth-register-btn', true);
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await _supabase.auth.signUp({ email, password });
         this.setLoading('auth-register-btn', false);
         if (error) {
             this.showError(error.message);
@@ -187,7 +187,7 @@ class AuthManager {
     }
 
     async logout() {
-        await supabase.auth.signOut();
+        await _supabase.auth.signOut();
         this.user = null;
         this.isGuest = false;
         this.game.hideUserMenu();
@@ -199,7 +199,7 @@ class AuthManager {
     }
 
     async checkSession() {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await _supabase.auth.getSession();
         if (session?.user) {
             this.user = session.user;
             return session.user;
@@ -360,7 +360,7 @@ class StoryGame {
         // else: auth screen stays visible, wait for user action
 
         // Listen for auth state changes (handles Google redirect)
-        supabase.auth.onAuthStateChange(async (event, session) => {
+        _supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' && session?.user && !this.authManager.user) {
                 this.authManager.user = session.user;
                 this.onAuthSuccess(session.user);
@@ -436,7 +436,7 @@ class StoryGame {
         // Try Supabase first if logged in
         if (user) {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await _supabase
                     .from('story_game_players')
                     .select('*')
                     .eq('user_id', user.id)
@@ -502,7 +502,7 @@ class StoryGame {
     async createSupabaseRow(user) {
         if (!user) return;
         try {
-            await supabase.from('story_game_players').upsert({
+            await _supabase.from('story_game_players').upsert({
                 user_id: user.id,
                 xp: this.playerData.xp,
                 level: this.playerData.level,
@@ -538,7 +538,7 @@ class StoryGame {
     async saveToSupabase() {
         if (!this.authManager.user) return;
         try {
-            await supabase.from('story_game_players').update({
+            await _supabase.from('story_game_players').update({
                 xp: this.playerData.xp,
                 level: this.playerData.level,
                 hearts: this.playerData.hearts,
