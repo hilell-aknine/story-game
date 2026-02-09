@@ -1897,6 +1897,160 @@ body {
 }
 
 /* ═══════════════════════════════════════
+   Compare Exercise
+   ═══════════════════════════════════════ */
+.compare-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.compare-card {
+    background: var(--bg-raised);
+    border: 2px solid var(--border-light);
+    border-radius: var(--r-lg);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.25s var(--ease-out);
+    width: 100%;
+}
+
+.compare-card:hover {
+    border-color: var(--glass-border-hover);
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+}
+
+.compare-card.selected {
+    border-color: var(--primary);
+    background: rgba(124, 92, 252, 0.08);
+    box-shadow: var(--shadow-glow-primary);
+}
+
+.compare-card.correct {
+    border-color: var(--accent-green);
+    background: rgba(52, 211, 153, 0.08);
+    box-shadow: var(--shadow-glow-green);
+    animation: pulse-success 0.5s var(--ease-out);
+}
+
+.compare-card.incorrect {
+    border-color: var(--accent-red);
+    background: rgba(251, 113, 133, 0.08);
+    box-shadow: var(--shadow-glow-pink);
+    animation: shake 0.4s var(--ease-out);
+}
+
+.compare-vs {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--accent-amber);
+    padding: 10px 0;
+    text-align: center;
+    letter-spacing: 2px;
+}
+
+.compare-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.compare-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════
+   Improve Exercise
+   ═══════════════════════════════════════ */
+.improve-original {
+    background: rgba(251, 113, 133, 0.06);
+    border: 1px solid rgba(251, 113, 133, 0.2);
+    border-radius: var(--r-md);
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.improve-original-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-red);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+
+.improve-original-text {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    text-decoration: line-through;
+    text-decoration-color: rgba(251, 113, 133, 0.4);
+}
+
+/* ═══════════════════════════════════════
+   Match Exercise
+   ═══════════════════════════════════════ */
+.match-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.match-column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.match-item {
+    background: var(--bg-raised);
+    border: 2px solid var(--border-light);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    cursor: pointer;
+    transition: all 0.2s var(--ease-out);
+    text-align: center;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.match-item:hover {
+    border-color: var(--glass-border-hover);
+    background: var(--bg-hover);
+}
+
+.match-item.selected {
+    border-color: var(--primary);
+    background: rgba(124, 92, 252, 0.1);
+    box-shadow: var(--shadow-glow-primary);
+    transform: scale(1.03);
+}
+
+.match-item.matched {
+    cursor: default;
+    opacity: 0.85;
+}
+
+.match-instructions {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+    text-align: center;
+}
+
+/* ═══════════════════════════════════════
    Selection Highlight
    ═══════════════════════════════════════ */
 ::selection {
@@ -2111,6 +2265,24 @@ body {
     .logo {
         font-size: 18px;
     }
+
+    .compare-card {
+        padding: 16px;
+    }
+
+    .compare-text {
+        font-size: 14px;
+    }
+
+    .match-item {
+        padding: 12px 10px;
+        font-size: 13px;
+        min-height: 48px;
+    }
+
+    .match-container {
+        gap: 8px;
+    }
 }
 
 /* ═══════════════════════════════════════
@@ -2120,7 +2292,9 @@ body {
 .lesson-item,
 .option-btn,
 .order-item,
-.word-chip {
+.word-chip,
+.compare-card,
+.match-item {
     will-change: transform;
     transform: translateZ(0);
 }
@@ -2145,6 +2319,14 @@ main,
 
     .btn {
         min-height: 48px;
+    }
+
+    .compare-card {
+        min-height: 80px;
+    }
+
+    .match-item {
+        min-height: 52px;
     }
 }
 

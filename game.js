@@ -329,7 +329,7 @@ class StoryGame {
         this.achievements = [
             { id: 'first_lesson', title: 'צעד ראשון', desc: 'סיימת את השיעור הראשון', icon: '🎯', condition: (data) => Object.keys(data.completedLessons).length >= 1 },
             { id: 'five_lessons', title: 'בדרך הנכונה', desc: 'סיימת 5 שיעורים', icon: '📚', condition: (data) => Object.keys(data.completedLessons).length >= 5 },
-            { id: 'all_lessons', title: 'מאסטר', desc: 'סיימת את כל השיעורים', icon: '👑', condition: (data) => Object.keys(data.completedLessons).length >= 10 },
+            { id: 'all_lessons', title: 'מאסטר', desc: 'סיימת את כל השיעורים', icon: '👑', condition: (data) => Object.keys(data.completedLessons).length >= 15 },
             { id: 'streak_3', title: 'התמדה', desc: '3 ימים ברצף', icon: '🔥', condition: (data) => data.streak >= 3 },
             { id: 'streak_7', title: 'שבוע של הצלחה', desc: '7 ימים ברצף', icon: '⭐', condition: (data) => data.streak >= 7 },
             { id: 'streak_30', title: 'מחויבות אמיתית', desc: '30 ימים ברצף', icon: '💎', condition: (data) => data.streak >= 30 },
@@ -1320,6 +1320,15 @@ ${answers.message || ''}`;
             case 'identify':
                 this.renderIdentify(container, exercise);
                 break;
+            case 'compare':
+                this.renderCompare(container, exercise);
+                break;
+            case 'improve':
+                this.renderImprove(container, exercise);
+                break;
+            case 'match':
+                this.renderMatch(container, exercise);
+                break;
         }
 
         this.showFooter();
@@ -1330,7 +1339,10 @@ ${answers.message || ''}`;
             'multiple-choice': "💡 חשבו מה היה מושך אתכם כלקוחות - זו בדרך כלל התשובה הנכונה!",
             'fill-blank': "💡 המילה הנכונה היא זו שיוצרת את הרגש החזק ביותר.",
             'order': "💡 חשבו על המסע של הקהל - מה הם צריכים לשמוע קודם?",
-            'identify': "💡 חפשו את החלק שגורם לכם להרגיש משהו."
+            'identify': "💡 חפשו את החלק שגורם לכם להרגיש משהו.",
+            'compare': "💡 דמיינו את עצמכם כלקוח - איזו גרסה הייתה גורמת לכם לעצור ולקרוא?",
+            'improve': "💡 חפשו את האפשרות שמוסיפה רגש, ספציפיות או חיבור אישי.",
+            'match': "💡 חפשו את הקשר הלוגי בין העמודות - מה מתחבר למה?"
         };
         return tips[exerciseType] || "";
     }
@@ -1592,6 +1604,193 @@ ${answers.message || ''}`;
     }
 
     // ═══════════════════════════════════════
+    // Compare Exercise
+    // ═══════════════════════════════════════
+    renderCompare(container, exercise) {
+        const tip = this.createExerciseTip('compare');
+
+        container.innerHTML = `
+            <button class="back-btn" onclick="game.exitLesson()">✕</button>
+            <div class="exercise-container">
+                <div class="exercise-type">איזה חזק יותר?</div>
+                <div class="exercise-question">${exercise.question}</div>
+                <div class="compare-cards">
+                    <div class="compare-card" onclick="game.selectCompare(0)">
+                        <div class="compare-label">${exercise.optionA.label}</div>
+                        <div class="compare-text">${exercise.optionA.text}</div>
+                    </div>
+                    <div class="compare-vs">VS</div>
+                    <div class="compare-card" onclick="game.selectCompare(1)">
+                        <div class="compare-label">${exercise.optionB.label}</div>
+                        <div class="compare-text">${exercise.optionB.text}</div>
+                    </div>
+                </div>
+                <div class="mentor-tip">
+                    <img class="mentor-tip-icon" src="mentor-gal.png" alt="גל" />
+                    <span class="mentor-tip-text">${tip}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    selectCompare(index) {
+        if (this.exerciseAnswered) return;
+        this.sound.play('click');
+        this.selectedAnswer = index;
+        document.querySelectorAll('.compare-card').forEach((card, i) => {
+            card.classList.toggle('selected', i === index);
+        });
+        this.enableCheckButton();
+    }
+
+    showCompareFeedback(isCorrect, exercise) {
+        document.querySelectorAll('.compare-card').forEach((card, i) => {
+            if (i === exercise.correct) {
+                card.classList.add('correct');
+            } else if (i === this.selectedAnswer && !isCorrect) {
+                card.classList.add('incorrect');
+            }
+        });
+    }
+
+    // ═══════════════════════════════════════
+    // Improve Exercise
+    // ═══════════════════════════════════════
+    renderImprove(container, exercise) {
+        const tip = this.createExerciseTip('improve');
+        const letters = ['א', 'ב', 'ג', 'ד'];
+        const optionsHtml = exercise.options.map((option, index) => `
+            <button class="option-btn" onclick="game.selectOption(${index})">
+                <span class="option-letter">${letters[index]}</span>
+                <span>${option}</span>
+            </button>
+        `).join('');
+
+        container.innerHTML = `
+            <button class="back-btn" onclick="game.exitLesson()">✕</button>
+            <div class="exercise-container">
+                <div class="exercise-type">שפר את הסיפור</div>
+                <div class="exercise-question">${exercise.question}</div>
+                <div class="improve-original">
+                    <div class="improve-original-label">המשפט המקורי:</div>
+                    <div class="improve-original-text">${exercise.original}</div>
+                </div>
+                <div class="options-list">
+                    ${optionsHtml}
+                </div>
+                <div class="mentor-tip">
+                    <img class="mentor-tip-icon" src="mentor-gal.png" alt="גל" />
+                    <span class="mentor-tip-text">${tip}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // ═══════════════════════════════════════
+    // Match Exercise
+    // ═══════════════════════════════════════
+    renderMatch(container, exercise) {
+        const tip = this.createExerciseTip('match');
+        this.matchState = {
+            selectedLeft: null,
+            selectedRight: null,
+            matches: [],
+            pairs: exercise.pairs
+        };
+
+        const shuffledRight = this.shuffleArray(exercise.pairs.map((p, i) => ({ text: p.right, originalIndex: i })));
+
+        const leftHtml = exercise.pairs.map((p, i) => `
+            <div class="match-item match-left" data-index="${i}" onclick="game.selectMatchItem('left', ${i})">${p.left}</div>
+        `).join('');
+
+        const rightHtml = shuffledRight.map((item) => `
+            <div class="match-item match-right" data-index="${item.originalIndex}" onclick="game.selectMatchItem('right', ${item.originalIndex})">${item.text}</div>
+        `).join('');
+
+        container.innerHTML = `
+            <button class="back-btn" onclick="game.exitLesson()">✕</button>
+            <div class="exercise-container">
+                <div class="exercise-type">התאמה</div>
+                <div class="exercise-question">${exercise.question}</div>
+                <div class="match-instructions">לחצו על פריט משמאל ואז על הפריט המתאים מימין</div>
+                <div class="match-container">
+                    <div class="match-column">${leftHtml}</div>
+                    <div class="match-column">${rightHtml}</div>
+                </div>
+                <div class="mentor-tip">
+                    <img class="mentor-tip-icon" src="mentor-gal.png" alt="גל" />
+                    <span class="mentor-tip-text">${tip}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    selectMatchItem(side, index) {
+        if (this.exerciseAnswered) return;
+        // Don't select already matched items
+        if (this.matchState.matches.some(m => m[side === 'left' ? 0 : 1] === index)) return;
+
+        this.sound.play('click');
+
+        if (side === 'left') {
+            // Deselect previous left
+            document.querySelectorAll('.match-left').forEach(el => el.classList.remove('selected'));
+            this.matchState.selectedLeft = index;
+            document.querySelector(`.match-left[data-index="${index}"]`).classList.add('selected');
+        } else {
+            // Deselect previous right
+            document.querySelectorAll('.match-right').forEach(el => el.classList.remove('selected'));
+            this.matchState.selectedRight = index;
+            document.querySelector(`.match-right[data-index="${index}"]`).classList.add('selected');
+        }
+
+        // If both selected, create a match
+        if (this.matchState.selectedLeft !== null && this.matchState.selectedRight !== null) {
+            const colors = ['#7c5cfc', '#2dd4bf', '#f472b6', '#fbbf24', '#fb923c'];
+            const colorIndex = this.matchState.matches.length % colors.length;
+            const color = colors[colorIndex];
+
+            this.matchState.matches.push([this.matchState.selectedLeft, this.matchState.selectedRight]);
+
+            const leftEl = document.querySelector(`.match-left[data-index="${this.matchState.selectedLeft}"]`);
+            const rightEl = document.querySelector(`.match-right[data-index="${this.matchState.selectedRight}"]`);
+            leftEl.classList.remove('selected');
+            rightEl.classList.remove('selected');
+            leftEl.classList.add('matched');
+            rightEl.classList.add('matched');
+            leftEl.style.borderColor = color;
+            rightEl.style.borderColor = color;
+            leftEl.style.background = color + '15';
+            rightEl.style.background = color + '15';
+
+            this.matchState.selectedLeft = null;
+            this.matchState.selectedRight = null;
+
+            // Enable check when all pairs matched
+            if (this.matchState.matches.length === this.matchState.pairs.length) {
+                this.enableCheckButton();
+            }
+        }
+    }
+
+    checkMatchAnswer(exercise) {
+        return this.matchState.matches.every(([left, right]) => left === right);
+    }
+
+    showMatchFeedback(isCorrect) {
+        document.querySelectorAll('.match-item').forEach(item => {
+            if (isCorrect) {
+                item.style.borderColor = 'var(--accent-green)';
+                item.style.background = 'rgba(52, 211, 153, 0.08)';
+            } else {
+                item.style.borderColor = 'var(--accent-red)';
+                item.style.background = 'rgba(251, 113, 133, 0.08)';
+            }
+        });
+    }
+
+    // ═══════════════════════════════════════
     // Answer Checking
     // ═══════════════════════════════════════
     checkAnswer() {
@@ -1613,6 +1812,18 @@ ${answers.message || ''}`;
             case 'identify':
                 isCorrect = this.checkIdentifyAnswer(exercise);
                 this.showIdentifyFeedback(isCorrect, exercise);
+                break;
+            case 'compare':
+                isCorrect = this.selectedAnswer === exercise.correct;
+                this.showCompareFeedback(isCorrect, exercise);
+                break;
+            case 'improve':
+                isCorrect = this.selectedAnswer === exercise.correct;
+                this.showMultipleChoiceFeedback(isCorrect, exercise);
+                break;
+            case 'match':
+                isCorrect = this.checkMatchAnswer(exercise);
+                this.showMatchFeedback(isCorrect);
                 break;
         }
 
