@@ -1019,18 +1019,32 @@ body {
 
 .level-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--accent-teal));
+    background: linear-gradient(90deg, var(--primary), var(--accent-teal), var(--accent-amber), var(--accent-orange));
+    background-size: 200% 100%;
     border-radius: var(--r-full);
     transition: width 0.6s var(--ease-out);
     position: relative;
+    animation: xp-bar-flow 3s linear infinite;
 }
 
 .level-progress-fill::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    animation: shimmer 2s infinite;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: xp-shine 2s ease-in-out infinite;
+    border-radius: var(--r-full);
+}
+
+@keyframes xp-bar-flow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+@keyframes xp-shine {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 /* ═══════════════════════════════════════
@@ -3393,5 +3407,375 @@ main,
 
     .level-up-heading {
         font-size: 28px;
+    }
+}
+
+/* ═══════════════════════════════════════
+   UI/UX Round 2: Ripple Effect
+   ═══════════════════════════════════════ */
+.btn, .option-btn, .word-chip, .compare-card,
+.module-card, .lesson-item, .daily-challenge-btn,
+.practice-mode-btn, .path-node, .home-path-node {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple-effect {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(0);
+    animation: ripple-expand 600ms ease-out forwards;
+    pointer-events: none;
+    z-index: 10;
+}
+
+@keyframes ripple-expand {
+    0% { transform: scale(0); opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ═══════════════════════════════════════
+   UI/UX Round 2: Flying XP Float
+   ═══════════════════════════════════════ */
+.xp-float {
+    position: fixed;
+    transform: translateX(-50%);
+    color: var(--accent-amber);
+    font-size: 18px;
+    font-weight: 800;
+    text-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
+    z-index: 300;
+    pointer-events: none;
+    animation: xp-float-up 1.2s var(--ease-out) forwards;
+    white-space: nowrap;
+}
+
+@keyframes xp-float-up {
+    0% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+    70% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-40px) scale(1.1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-60px) scale(0.8);
+    }
+}
+
+/* ═══════════════════════════════════════
+   UI/UX Round 2: Home Screen Journey Path
+   ═══════════════════════════════════════ */
+.home-journey {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 30px;
+    position: relative;
+}
+
+.home-journey-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.home-path-container {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+}
+
+/* Vertical dotted line */
+.home-path-line {
+    position: absolute;
+    top: 30px;
+    bottom: 30px;
+    left: 50%;
+    width: 3px;
+    transform: translateX(-50%);
+    background: repeating-linear-gradient(
+        to bottom,
+        var(--border-light) 0px,
+        var(--border-light) 6px,
+        transparent 6px,
+        transparent 12px
+    );
+    z-index: 0;
+}
+
+.home-path-node {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    border-radius: var(--r-lg);
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 2px solid var(--glass-border);
+    cursor: pointer;
+    transition: all 0.3s var(--ease-out);
+}
+
+.home-path-node:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Zigzag offset */
+.home-path-node:nth-child(odd) {
+    margin-right: 30px;
+    margin-left: 0;
+}
+.home-path-node:nth-child(even) {
+    margin-left: 30px;
+    margin-right: 0;
+}
+
+.home-path-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.home-path-info {
+    flex: 1;
+}
+
+.home-path-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.home-path-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.home-path-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.3;
+}
+
+.home-path-progress {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.home-path-progress-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--bg-active);
+    border-radius: var(--r-full);
+    overflow: hidden;
+}
+
+.home-path-progress-fill {
+    height: 100%;
+    border-radius: var(--r-full);
+    background: linear-gradient(90deg, var(--primary), var(--accent-teal));
+    transition: width 0.6s var(--ease-out);
+}
+
+.home-path-progress-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    min-width: 28px;
+    text-align: left;
+}
+
+.home-path-arrow {
+    font-size: 18px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* Node states */
+.home-path-node.start {
+    border-color: rgba(52, 211, 153, 0.4);
+    background: rgba(52, 211, 153, 0.08);
+}
+.home-path-node.start .home-path-icon {
+    background: linear-gradient(135deg, var(--accent-green), var(--accent-green-dark));
+}
+
+.home-path-node.completed {
+    border-color: rgba(52, 211, 153, 0.3);
+}
+.home-path-node.completed .home-path-icon {
+    background: linear-gradient(135deg, var(--accent-green), var(--accent-green-dark));
+}
+
+.home-path-node.available {
+    border-color: rgba(124, 92, 252, 0.4);
+    box-shadow: 0 0 20px rgba(124, 92, 252, 0.1);
+}
+.home-path-node.available .home-path-icon {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    animation: node-pulse 2s infinite;
+}
+
+.home-path-node.locked {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.home-path-node.locked:hover {
+    transform: none;
+    box-shadow: none;
+}
+.home-path-node.locked .home-path-icon {
+    background: var(--bg-active);
+}
+
+.home-path-node.special {
+    border-color: rgba(251, 191, 36, 0.3);
+    background: rgba(251, 191, 36, 0.05);
+}
+.home-path-node.special .home-path-icon {
+    background: linear-gradient(135deg, var(--accent-amber), var(--accent-orange));
+}
+
+.home-path-node.goal {
+    border-color: rgba(251, 191, 36, 0.4);
+    background: rgba(251, 191, 36, 0.08);
+}
+.home-path-node.goal .home-path-icon {
+    background: linear-gradient(135deg, var(--accent-amber), var(--accent-orange));
+    animation: goal-glow 2s infinite alternate;
+}
+
+@keyframes goal-glow {
+    0% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }
+    100% { box-shadow: 0 0 25px rgba(251, 191, 36, 0.6); }
+}
+
+/* ═══════════════════════════════════════
+   UI/UX Round 2: Rainbow Achievement Glow
+   ═══════════════════════════════════════ */
+.achievement-item.unlocked {
+    animation: rainbow-glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes rainbow-glow-pulse {
+    0%   { box-shadow: 0 0 8px rgba(124, 92, 252, 0.3); }
+    25%  { box-shadow: 0 0 12px rgba(52, 211, 153, 0.3); }
+    50%  { box-shadow: 0 0 8px rgba(251, 191, 36, 0.3); }
+    75%  { box-shadow: 0 0 12px rgba(244, 63, 94, 0.3); }
+    100% { box-shadow: 0 0 8px rgba(124, 92, 252, 0.3); }
+}
+
+.achievement-popup {
+    animation: achievement-pop-in 0.5s var(--ease-spring), rainbow-border 4s linear infinite;
+}
+
+@keyframes rainbow-border {
+    0%   { border-color: rgba(124, 92, 252, 0.5); }
+    25%  { border-color: rgba(52, 211, 153, 0.5); }
+    50%  { border-color: rgba(251, 191, 36, 0.5); }
+    75%  { border-color: rgba(244, 63, 94, 0.5); }
+    100% { border-color: rgba(124, 92, 252, 0.5); }
+}
+
+/* ═══════════════════════════════════════
+   UI/UX Round 2: Typography & Responsiveness
+   ═══════════════════════════════════════ */
+
+/* Typography hierarchy */
+.mentor-text {
+    font-size: 16px;
+    line-height: 1.7;
+}
+
+.module-title {
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.lesson-title {
+    font-size: 16px;
+}
+
+.exercise-text, .question-text {
+    font-size: 17px;
+    line-height: 1.7;
+    font-weight: 600;
+}
+
+.option-btn {
+    font-size: 15px;
+    min-height: 48px;
+}
+
+/* Touch-friendly sizing */
+.btn {
+    min-height: 48px;
+    font-size: 15px;
+}
+
+.word-chip {
+    min-height: 42px;
+    font-size: 14px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+    .home-path-node:nth-child(odd) { margin-right: 15px; }
+    .home-path-node:nth-child(even) { margin-left: 15px; }
+
+    .home-path-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .home-path-title {
+        font-size: 14px;
+    }
+
+    .mentor-text {
+        font-size: 15px;
+    }
+
+    .exercise-text, .question-text {
+        font-size: 16px;
+    }
+
+    .feedback-panel .feedback-content {
+        padding: 20px 16px;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+    }
+
+    .option-btn {
+        padding: 14px 16px;
+        min-height: 50px;
     }
 }

@@ -341,8 +341,31 @@ class StoryGame {
             { id: 'accuracy_80', title: 'דיוק גבוה', desc: 'דיוק של 80% ומעלה', icon: '🎯', condition: (data) => data.totalCorrectAnswers > 0 && (data.totalCorrectAnswers / (data.totalCorrectAnswers + data.totalWrongAnswers)) >= 0.8 }
         ];
 
+        // Init ripple effect on all interactive elements
+        this.initRipple();
+
         // Init auth flow
         this.initAuth();
+    }
+
+    // ═══════════════════════════════════════
+    // Ripple Effect
+    // ═══════════════════════════════════════
+    initRipple() {
+        document.addEventListener('click', (e) => {
+            const target = e.target.closest('.btn, .option-btn, .word-chip, .compare-card, .module-card, .lesson-item, .daily-challenge-btn, .practice-mode-btn, .path-node:not(.locked), .home-path-node:not(.locked)');
+            if (!target) return;
+
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple-effect';
+            const rect = target.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+            ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+            target.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        });
     }
 
     // ═══════════════════════════════════════
@@ -944,32 +967,100 @@ class StoryGame {
         const container = document.getElementById('game-container');
         const welcomeMessage = this.getRandomMessage(this.mentorMessages.welcome);
 
-        let modulesHtml = MODULES.map((module, index) => {
+        const levelInfo = this.getLevelProgressInfo();
+        const dailyChallengeCompleted = this.playerData.dailyChallengeCompleted === new Date().toDateString();
+
+        // Build journey path nodes
+        let pathNodesHtml = '';
+
+        // START node — daily challenge
+        pathNodesHtml += `
+            <div class="home-path-node special" onclick="game.startDailyChallenge()">
+                <div class="home-path-icon">${dailyChallengeCompleted ? '✅' : '🎯'}</div>
+                <div class="home-path-info">
+                    <div class="home-path-label">אתגר יומי</div>
+                    <div class="home-path-title">${dailyChallengeCompleted ? 'הושלם היום!' : 'השלימו 3 תרגילים'}</div>
+                    <div class="home-path-desc">${dailyChallengeCompleted ? 'כל הכבוד! חזרו מחר' : 'קבלו בונוס XP!'}</div>
+                </div>
+                <div class="home-path-arrow">${dailyChallengeCompleted ? '' : '←'}</div>
+            </div>
+        `;
+
+        // Story Builder node
+        pathNodesHtml += `
+            <div class="home-path-node special" onclick="game.transitionTo(function() { game.startStoryBuilder() })">
+                <div class="home-path-icon">✍️</div>
+                <div class="home-path-info">
+                    <div class="home-path-label">תרגול חופשי</div>
+                    <div class="home-path-title">בנה סיפור</div>
+                    <div class="home-path-desc">צרו סיפור שלם עם ליווי של גל</div>
+                </div>
+                <div class="home-path-arrow">←</div>
+            </div>
+        `;
+
+        // Module nodes
+        MODULES.forEach((module, index) => {
             const progress = this.getModuleProgress(module.id);
             const isCompleted = progress === 100;
             const isLocked = index > 0 && this.getModuleProgress(MODULES[index - 1].id) < 50;
+            const isPerfect = this.playerData.perfectLessonsList &&
+                module.lessons && module.lessons.every(l =>
+                    this.playerData.perfectLessonsList.includes(`${module.id}-${l.id}`)
+                );
 
-            return `
-                <div class="module-card ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}"
+            let stateClass = 'available';
+            let stateIcon = module.icon;
+            if (isLocked) {
+                stateClass = 'locked';
+                stateIcon = '🔒';
+            } else if (isPerfect) {
+                stateClass = 'completed';
+                stateIcon = '⭐';
+            } else if (isCompleted) {
+                stateClass = 'completed';
+                stateIcon = '✅';
+            }
+
+            pathNodesHtml += `
+                <div class="home-path-node ${stateClass}"
                      onclick="${isLocked ? '' : `game.transitionTo(function() { game.openModule(${module.id}) })`}">
-                    <div class="module-icon">${module.icon}</div>
-                    <div class="module-info">
-                        <div class="module-title">${module.title}</div>
-                        <div class="module-desc">${module.description}</div>
-                        <div class="module-progress">
-                            <div class="module-progress-bar">
-                                <div class="module-progress-fill" style="width: ${progress}%"></div>
+                    <div class="home-path-icon">${stateIcon}</div>
+                    <div class="home-path-info">
+                        <div class="home-path-label">מודול ${index + 1}</div>
+                        <div class="home-path-title">${module.title}</div>
+                        <div class="home-path-desc">${module.description}</div>
+                        <div class="home-path-progress">
+                            <div class="home-path-progress-bar">
+                                <div class="home-path-progress-fill" style="width: ${progress}%"></div>
                             </div>
-                            <span class="module-progress-text">${progress}%</span>
+                            <span class="home-path-progress-text">${progress}%</span>
                         </div>
                     </div>
-                    <span class="lesson-status">${isLocked ? '🔒' : isCompleted ? '✅' : '▶️'}</span>
+                    <div class="home-path-arrow">${isLocked ? '' : '←'}</div>
                 </div>
             `;
-        }).join('');
+        });
 
-        const levelInfo = this.getLevelProgressInfo();
-        const dailyChallengeCompleted = this.playerData.dailyChallengeCompleted === new Date().toDateString();
+        // GOAL node
+        const totalProgress = MODULES.reduce((sum, m) => sum + this.getModuleProgress(m.id), 0);
+        const overallProgress = Math.round(totalProgress / MODULES.length);
+        pathNodesHtml += `
+            <div class="home-path-node goal" style="cursor: default;">
+                <div class="home-path-icon">🏆</div>
+                <div class="home-path-info">
+                    <div class="home-path-label">יעד</div>
+                    <div class="home-path-title">מאסטר הסטוריטלינג</div>
+                    <div class="home-path-desc">השלימו את כל המודולים</div>
+                    <div class="home-path-progress">
+                        <div class="home-path-progress-bar">
+                            <div class="home-path-progress-fill" style="width: ${overallProgress}%"></div>
+                        </div>
+                        <span class="home-path-progress-text">${overallProgress}%</span>
+                    </div>
+                </div>
+            </div>
+        `;
 
         container.innerHTML = `
             ${this.createMentorHTML(welcomeMessage)}
@@ -988,29 +1079,12 @@ class StoryGame {
                 </div>
             </div>
 
-            <!-- אתגר יומי -->
-            <button class="daily-challenge-btn ${dailyChallengeCompleted ? 'completed' : ''}" onclick="game.startDailyChallenge()">
-                <span class="daily-challenge-icon">${dailyChallengeCompleted ? '✅' : '🎯'}</span>
-                <div class="daily-challenge-info">
-                    <div class="daily-challenge-title">${dailyChallengeCompleted ? 'אתגר יומי הושלם!' : 'אתגר יומי'}</div>
-                    <div class="daily-challenge-desc">${dailyChallengeCompleted ? 'כל הכבוד! חזרו מחר לאתגר חדש' : 'השלימו 3 תרגילים וקבלו בונוס XP!'}</div>
+            <!-- מסלול למידה -->
+            <div class="home-journey">
+                <div class="home-path-container">
+                    <div class="home-path-line"></div>
+                    ${pathNodesHtml}
                 </div>
-                ${dailyChallengeCompleted ? '' : '<span style="font-size: 20px; color: var(--bg-main);">→</span>'}
-            </button>
-
-            <!-- תרגול חופשי -->
-            <button class="practice-mode-btn" onclick="game.transitionTo(function() { game.startStoryBuilder() })">
-                <div class="practice-mode-icon">✍️</div>
-                <div class="practice-mode-info">
-                    <div class="practice-mode-title">תרגול חופשי - בנה סיפור</div>
-                    <div class="practice-mode-desc">צרו סיפור שלם שלב אחרי שלב עם ליווי של גל</div>
-                </div>
-                <span style="font-size: 24px;">→</span>
-            </button>
-
-            <!-- מודולים -->
-            <div class="modules-grid">
-                ${modulesHtml}
             </div>
 
             <!-- הישגים -->
@@ -2167,11 +2241,25 @@ ${answers.message || ''}`;
     }
 
     showXPPopup(amount) {
-        const popup = document.createElement('div');
-        popup.className = 'xp-popup';
-        popup.textContent = `+${amount} XP`;
-        document.body.appendChild(popup);
-        setTimeout(() => popup.remove(), 1000);
+        // Floating XP from the XP stat in header
+        const xpStat = document.querySelector('.stat-item.xp');
+        if (xpStat) {
+            const rect = xpStat.getBoundingClientRect();
+            const popup = document.createElement('div');
+            popup.className = 'xp-float';
+            popup.textContent = `+${amount} XP`;
+            popup.style.left = rect.left + rect.width / 2 + 'px';
+            popup.style.top = rect.bottom + 'px';
+            document.body.appendChild(popup);
+            setTimeout(() => popup.remove(), 1200);
+        } else {
+            // Fallback centered popup
+            const popup = document.createElement('div');
+            popup.className = 'xp-popup';
+            popup.textContent = `+${amount} XP`;
+            document.body.appendChild(popup);
+            setTimeout(() => popup.remove(), 1000);
+        }
     }
 
     loseHeart() {
