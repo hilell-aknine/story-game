@@ -767,10 +767,10 @@ class StoryGame {
     // ═══════════════════════════════════════
     // Mentor HTML
     // ═══════════════════════════════════════
-    createMentorHTML(message, showName = true) {
+    createMentorHTML(message, showName = true, mood = 'idle') {
         return `
-            <div class="mentor-container">
-                <div class="mentor-avatar">
+            <div class="mentor-container mentor-enter">
+                <div class="mentor-avatar mentor-${mood}">
                     <img src="mentor-gal.png" alt="גל" />
                 </div>
                 <div class="mentor-bubble">
@@ -779,6 +779,14 @@ class StoryGame {
                 </div>
             </div>
         `;
+    }
+
+    animateMentor(mood) {
+        const avatar = document.querySelector('.mentor-avatar');
+        if (!avatar) return;
+        avatar.className = 'mentor-avatar';
+        void avatar.offsetWidth; // force reflow
+        avatar.classList.add(`mentor-${mood}`);
     }
 
     getRandomMessage(messageArray) {
@@ -1063,7 +1071,7 @@ class StoryGame {
         `;
 
         container.innerHTML = `
-            ${this.createMentorHTML(welcomeMessage)}
+            ${this.createMentorHTML(welcomeMessage, true, 'wave')}
 
             <!-- התקדמות רמה -->
             <div class="level-progress-container">
@@ -2037,6 +2045,9 @@ ${answers.message || ''}`;
         document.getElementById('feedback-icon').textContent = isCorrect ? '🎉' : '😅';
         document.getElementById('feedback-title').textContent = mentorMessage;
 
+        // Animate mentor avatar
+        this.animateMentor(isCorrect ? 'happy' : 'sad');
+
         // Build enhanced feedback for wrong answers
         const exercise = this.currentLesson.exercises[this.currentExerciseIndex];
         let feedbackHtml = '';
@@ -2148,7 +2159,7 @@ ${answers.message || ''}`;
                 <div class="completion-icon">🏆</div>
                 <div class="completion-title">כל הכבוד!</div>
                 <div class="completion-subtitle">סיימת את השיעור "${this.currentLesson.title}"</div>
-                ${this.createMentorHTML(completionMessage)}
+                ${this.createMentorHTML(completionMessage, true, 'happy')}
                 <div class="completion-stats">
                     <div class="completion-stat">
                         <div class="completion-stat-value">+50</div>
@@ -2553,28 +2564,55 @@ ${answers.message || ''}`;
             <div class="level-up-name">${this.getLevelName(level)}</div>
         `;
         overlay.style.display = 'flex';
+        overlay.classList.add('party-mode');
 
-        // Create confetti for level-up
+        // Screen shake
+        document.body.classList.add('screen-shake');
+        setTimeout(() => document.body.classList.remove('screen-shake'), 600);
+
+        // Confetti particles
         const confettiContainer = document.createElement('div');
         confettiContainer.className = 'confetti-container';
         overlay.appendChild(confettiContainer);
         const colors = ['#58CC02', '#1CB0F6', '#FF9600', '#FFC800', '#CE82FF', '#FF86D0', '#FF4B4B', '#7C5CFC'];
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 100; i++) {
             const c = document.createElement('div');
             c.className = 'confetti-particle';
             c.style.left = Math.random() * 100 + '%';
             c.style.background = colors[Math.floor(Math.random() * colors.length)];
-            c.style.animationDelay = Math.random() * 1 + 's';
+            c.style.animationDelay = Math.random() * 1.5 + 's';
             c.style.animationDuration = (2 + Math.random() * 2) + 's';
+            const size = 6 + Math.random() * 6;
+            c.style.width = size + 'px';
+            c.style.height = size + 'px';
+            if (Math.random() > 0.5) c.style.borderRadius = '50%';
             confettiContainer.appendChild(c);
+        }
+
+        // Emoji rain
+        const emojis = ['🎉', '🎊', '✨', '🌟', '⭐', '🏆', '💫', '🥳'];
+        for (let i = 0; i < 20; i++) {
+            const emoji = document.createElement('div');
+            emoji.className = 'emoji-rain';
+            emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            emoji.style.left = Math.random() * 100 + '%';
+            emoji.style.animationDelay = Math.random() * 2 + 's';
+            emoji.style.fontSize = (18 + Math.random() * 16) + 'px';
+            confettiContainer.appendChild(emoji);
         }
 
         this.sound.play('levelUp');
 
-        setTimeout(() => {
+        // Click to dismiss
+        const dismiss = () => {
             overlay.style.display = 'none';
+            overlay.classList.remove('party-mode');
             confettiContainer.remove();
-        }, 2500);
+            overlay.removeEventListener('click', dismiss);
+        };
+        overlay.addEventListener('click', dismiss);
+
+        setTimeout(dismiss, 3500);
     }
 
     // ═══════════════════════════════════════
