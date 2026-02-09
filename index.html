@@ -137,7 +137,13 @@
     <!-- User Menu Dropdown -->
     <div class="user-menu" id="user-menu" style="display: none;">
         <div class="user-menu-email" id="user-menu-email"></div>
+        <button class="user-menu-item" onclick="game.showStats()">📊 הסטטיסטיקות שלי</button>
         <button class="user-menu-item" onclick="game.authManager.logout()">🚪 התנתקות</button>
+    </div>
+
+    <!-- Level Up Overlay -->
+    <div class="level-up-overlay" id="level-up-overlay" style="display: none;">
+        <div class="level-up-text" id="level-up-text"></div>
     </div>
 
     <!-- Progress Bar -->

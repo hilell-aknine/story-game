@@ -428,7 +428,11 @@ class StoryGame {
             dailyChallengeCompleted: null,
             reviewQueue: [],
             lastReviewDate: null,
-            onboardingComplete: false
+            onboardingComplete: false,
+            longestStreak: 0,
+            weeklyActivity: {},
+            moduleAccuracy: {},
+            perfectLessonsList: []
         };
     }
 
@@ -784,6 +788,12 @@ class StoryGame {
         } else {
             this.playerData.streak = 1;
             this.playerData.lastPlayDate = today;
+            this.savePlayerData();
+        }
+
+        // Track longest streak
+        if (this.playerData.streak > (this.playerData.longestStreak || 0)) {
+            this.playerData.longestStreak = this.playerData.streak;
             this.savePlayerData();
         }
     }
@@ -1241,19 +1251,51 @@ ${answers.message || ''}`;
         this.currentScreen = 'module';
         const container = document.getElementById('game-container');
         const moduleIntroMessage = this.mentorMessages.moduleIntro[moduleId] || "בואו נתחיל!";
+        const perfectList = this.playerData.perfectLessonsList || [];
 
-        let lessonsHtml = this.currentModule.lessons.map((lesson, index) => {
-            const isCompleted = this.playerData.completedLessons[`${moduleId}-${lesson.id}`];
+        // Progress
+        const completedCount = this.currentModule.lessons.filter(l =>
+            this.playerData.completedLessons[`${moduleId}-${l.id}`]
+        ).length;
+        const totalCount = this.currentModule.lessons.length;
+        const progressPct = Math.round((completedCount / totalCount) * 100);
+
+        // Build visual learning path
+        let pathHtml = this.currentModule.lessons.map((lesson, index) => {
+            const lessonKey = `${moduleId}-${lesson.id}`;
+            const isCompleted = this.playerData.completedLessons[lessonKey];
+            const isPerfect = perfectList.includes(lessonKey);
             const isLocked = index > 0 && !this.playerData.completedLessons[`${moduleId}-${this.currentModule.lessons[index - 1].id}`];
+            const isAvailable = !isLocked && !isCompleted;
+
+            let stateClass = 'locked';
+            let icon = '🔒';
+            let onclick = '';
+
+            if (isPerfect) {
+                stateClass = 'perfect';
+                icon = '⭐';
+                onclick = `onclick="game.startLesson(${lesson.id})"`;
+            } else if (isCompleted) {
+                stateClass = 'completed';
+                icon = '✅';
+                onclick = `onclick="game.startLesson(${lesson.id})"`;
+            } else if (isAvailable) {
+                stateClass = 'available';
+                icon = '▶️';
+                onclick = `onclick="game.startLesson(${lesson.id})"`;
+            }
 
             return `
-                <div class="lesson-item ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}"
-                     onclick="${isLocked ? '' : `game.startLesson(${lesson.id})`}">
-                    <div class="lesson-info">
-                        <div class="lesson-number">${index + 1}</div>
-                        <div class="lesson-title">${lesson.title}</div>
+                <div class="path-node-row">
+                    ${index < this.currentModule.lessons.length - 1 ? '<div class="path-connector"></div>' : ''}
+                    <div class="path-node ${stateClass}" ${onclick}>
+                        <div class="path-node-icon">${icon}</div>
+                        <div class="path-node-info">
+                            <div class="path-node-number">שיעור ${index + 1}</div>
+                            <div class="path-node-title">${lesson.title}</div>
+                        </div>
                     </div>
-                    <span class="lesson-status">${isLocked ? '🔒' : isCompleted ? '✅' : '▶️'}</span>
                 </div>
             `;
         }).join('');
@@ -1262,12 +1304,20 @@ ${answers.message || ''}`;
             <button class="back-btn" onclick="game.transitionTo(function() { game.renderHomeScreen() })">
                 → חזרה
             </button>
-            <h2 style="margin-bottom: 20px;">${this.currentModule.icon} ${this.currentModule.title}</h2>
+            <div class="learning-path-header">
+                <h2>${this.currentModule.icon} ${this.currentModule.title}</h2>
+                <div class="learning-path-progress">
+                    <span>${completedCount}/${totalCount} שיעורים</span>
+                    <div class="learning-path-progress-bar">
+                        <div class="learning-path-progress-fill" style="width: ${progressPct}%"></div>
+                    </div>
+                </div>
+            </div>
             <div class="module-intro">
                 ${this.createMentorHTML(moduleIntroMessage)}
             </div>
-            <div class="lessons-list">
-                ${lessonsHtml}
+            <div class="learning-path">
+                ${pathHtml}
             </div>
         `;
 
@@ -1833,6 +1883,7 @@ ${answers.message || ''}`;
             this.sound.play('correct');
             this.playerData.totalCorrectAnswers = (this.playerData.totalCorrectAnswers || 0) + 1;
             this.addXP(10);
+            this.createStarBurst();
             // Haptic feedback
             if (navigator.vibrate) navigator.vibrate(50);
         } else {
@@ -1842,6 +1893,9 @@ ${answers.message || ''}`;
             this.loseHeart();
             if (navigator.vibrate) navigator.vibrate([100, 30, 100]);
         }
+
+        // Track stats
+        this.updateExerciseStats(isCorrect, this.currentModule.id);
 
         this.showFeedback(isCorrect, exercise.explanation);
         this.savePlayerData();
@@ -1908,10 +1962,61 @@ ${answers.message || ''}`;
 
         document.getElementById('feedback-icon').textContent = isCorrect ? '🎉' : '😅';
         document.getElementById('feedback-title').textContent = mentorMessage;
-        document.getElementById('feedback-explanation').textContent = explanation;
+
+        // Build enhanced feedback for wrong answers
+        const exercise = this.currentLesson.exercises[this.currentExerciseIndex];
+        let feedbackHtml = '';
+
+        if (!isCorrect && exercise.wrongExplanations && this.selectedAnswer !== null) {
+            const wrongExp = exercise.wrongExplanations[this.selectedAnswer];
+            const selectedText = this.getSelectedAnswerText(exercise);
+            const correctText = this.getCorrectAnswerText(exercise);
+
+            feedbackHtml += `<div class="wrong-answer-detail">`;
+            feedbackHtml += `<div class="feedback-answer-label">❌ בחרת:</div>`;
+            feedbackHtml += `<div class="feedback-answer-text">${selectedText}</div>`;
+            if (wrongExp) feedbackHtml += `<div class="feedback-answer-reason">${wrongExp}</div>`;
+            feedbackHtml += `</div>`;
+
+            feedbackHtml += `<div class="correct-answer-detail">`;
+            feedbackHtml += `<div class="feedback-answer-label">✅ התשובה הנכונה:</div>`;
+            feedbackHtml += `<div class="feedback-answer-text">${correctText}</div>`;
+            feedbackHtml += `</div>`;
+
+            if (explanation) feedbackHtml += `<div style="margin-top:8px">${explanation}</div>`;
+        } else {
+            feedbackHtml = explanation;
+        }
+
+        document.getElementById('feedback-explanation').innerHTML = feedbackHtml;
         document.getElementById('feedback-btn').textContent = 'המשך';
 
+        // Streak fire pulse on correct
+        if (isCorrect) {
+            const streakEl = document.querySelector('.stat-item.streak');
+            if (streakEl) {
+                streakEl.classList.add('streak-fire-pulse');
+                setTimeout(() => streakEl.classList.remove('streak-fire-pulse'), 500);
+            }
+        }
+
         this.hideFooter();
+    }
+
+    getSelectedAnswerText(exercise) {
+        if (exercise.type === 'compare') {
+            return this.selectedAnswer === 0 ? exercise.optionA.text : exercise.optionB.text;
+        }
+        if (exercise.options) return exercise.options[this.selectedAnswer];
+        return '';
+    }
+
+    getCorrectAnswerText(exercise) {
+        if (exercise.type === 'compare') {
+            return exercise.correct === 0 ? exercise.optionA.text : exercise.optionB.text;
+        }
+        if (exercise.options) return exercise.options[exercise.correct];
+        return '';
     }
 
     continueToNext() {
@@ -1938,6 +2043,10 @@ ${answers.message || ''}`;
 
             if (this.lessonMistakes === 0) {
                 this.playerData.perfectLessons = (this.playerData.perfectLessons || 0) + 1;
+                if (!this.playerData.perfectLessonsList) this.playerData.perfectLessonsList = [];
+                if (!this.playerData.perfectLessonsList.includes(lessonKey)) {
+                    this.playerData.perfectLessonsList.push(lessonKey);
+                }
             }
 
             this.savePlayerData();
@@ -2034,15 +2143,24 @@ ${answers.message || ''}`;
     // XP & Hearts
     // ═══════════════════════════════════════
     addXP(amount) {
+        const oldXP = this.playerData.xp;
         const oldLevel = this.playerData.level;
         this.playerData.xp += amount;
         this.playerData.level = this.calculateLevel();
         this.savePlayerData();
-        this.updateStatsDisplay();
         this.showXPPopup(amount);
 
+        // Animate XP counter
+        const xpEl = document.getElementById('xp-value');
+        if (xpEl) {
+            this.animateCountUp(xpEl, oldXP, this.playerData.xp, 500);
+        }
+        // Update other stats (streak, hearts)
+        document.getElementById('streak-value').textContent = this.playerData.streak;
+        this.renderHearts();
+
         if (this.playerData.level > oldLevel) {
-            this.sound.play('levelUp');
+            this.showLevelUpCelebration(this.playerData.level);
         }
 
         this.checkAchievements();
@@ -2127,6 +2245,248 @@ ${answers.message || ''}`;
         document.getElementById('modal-overlay').classList.remove('show');
         document.getElementById('feedback-panel').classList.remove('show');
         this.transitionTo(() => this.openModule(this.currentModule.id));
+    }
+
+    // ═══════════════════════════════════════
+    // Stats Tracking
+    // ═══════════════════════════════════════
+    updateExerciseStats(isCorrect, moduleId) {
+        // Weekly activity
+        const today = new Date().toISOString().split('T')[0];
+        if (!this.playerData.weeklyActivity) this.playerData.weeklyActivity = {};
+        this.playerData.weeklyActivity[today] = (this.playerData.weeklyActivity[today] || 0) + 1;
+
+        // Module accuracy
+        if (!this.playerData.moduleAccuracy) this.playerData.moduleAccuracy = {};
+        if (!this.playerData.moduleAccuracy[moduleId]) {
+            this.playerData.moduleAccuracy[moduleId] = { correct: 0, total: 0 };
+        }
+        this.playerData.moduleAccuracy[moduleId].total++;
+        if (isCorrect) {
+            this.playerData.moduleAccuracy[moduleId].correct++;
+        }
+    }
+
+    // ═══════════════════════════════════════
+    // Personal Stats Screen
+    // ═══════════════════════════════════════
+    showStats() {
+        this.hideUserMenu();
+        this.transitionTo(() => this.renderStatsScreen());
+    }
+
+    hideStats() {
+        this.transitionTo(() => this.renderHomeScreen());
+    }
+
+    renderStatsScreen() {
+        this.currentScreen = 'stats';
+        const container = document.getElementById('game-container');
+        const pd = this.playerData;
+
+        // Summary cards
+        const totalLessons = Object.keys(pd.completedLessons).length;
+        const longestStreak = pd.longestStreak || pd.streak || 0;
+
+        // Weekly activity chart (last 7 days)
+        const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+        const weekData = [];
+        let maxActivity = 1;
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().split('T')[0];
+            const count = (pd.weeklyActivity && pd.weeklyActivity[key]) || 0;
+            if (count > maxActivity) maxActivity = count;
+            weekData.push({ day: dayNames[d.getDay()], count, key });
+        }
+
+        const weeklyBarsHtml = weekData.map(w => {
+            const height = Math.max(4, (w.count / maxActivity) * 100);
+            const isToday = w.key === new Date().toISOString().split('T')[0];
+            return `
+                <div class="weekly-bar-wrapper">
+                    <div class="weekly-bar ${isToday ? 'today' : ''}" style="height: ${height}%">
+                        <span class="weekly-bar-count">${w.count || ''}</span>
+                    </div>
+                    <div class="weekly-label">${w.day}</div>
+                </div>
+            `;
+        }).join('');
+
+        // Module accuracy
+        const moduleAccuracyHtml = MODULES.map(m => {
+            const acc = pd.moduleAccuracy && pd.moduleAccuracy[m.id];
+            if (!acc || acc.total === 0) {
+                return `
+                    <div class="accuracy-row">
+                        <span class="accuracy-module-name">${m.icon} ${m.title}</span>
+                        <div class="accuracy-bar-wrapper">
+                            <div class="accuracy-bar" style="width: 0%"></div>
+                        </div>
+                        <span class="accuracy-percent">--</span>
+                    </div>
+                `;
+            }
+            const pct = Math.round((acc.correct / acc.total) * 100);
+            const color = pct >= 80 ? 'var(--accent-green)' : pct >= 50 ? 'var(--accent-amber)' : 'var(--accent-red)';
+            return `
+                <div class="accuracy-row">
+                    <span class="accuracy-module-name">${m.icon} ${m.title}</span>
+                    <div class="accuracy-bar-wrapper">
+                        <div class="accuracy-bar" style="width: ${pct}%; background: ${color}"></div>
+                    </div>
+                    <span class="accuracy-percent">${pct}%</span>
+                </div>
+            `;
+        }).join('');
+
+        // Perfect lessons
+        const perfectList = pd.perfectLessonsList || [];
+        let perfectHtml = '';
+        if (perfectList.length > 0) {
+            perfectHtml = perfectList.map(key => {
+                const [modId, lesId] = key.split('-').map(Number);
+                const mod = MODULES.find(m => m.id === modId);
+                const les = mod && mod.lessons.find(l => l.id === lesId);
+                return les ? `<div class="perfect-lesson-item">⭐ ${les.title}</div>` : '';
+            }).join('');
+        } else {
+            perfectHtml = '<div class="perfect-lesson-empty">עדיין אין שיעורים מושלמים — סיימו שיעור בלי טעויות!</div>';
+        }
+
+        // Accuracy percentage
+        const totalAnswers = (pd.totalCorrectAnswers || 0) + (pd.totalWrongAnswers || 0);
+        const accuracyPct = totalAnswers > 0 ? Math.round((pd.totalCorrectAnswers / totalAnswers) * 100) : 0;
+
+        container.innerHTML = `
+            <div class="stats-screen">
+                <button class="back-btn" onclick="game.hideStats()">→ חזרה</button>
+                <h2 class="stats-title">📊 הסטטיסטיקות שלי</h2>
+
+                <div class="stats-cards">
+                    <div class="stats-card">
+                        <div class="stats-card-value">${pd.xp}</div>
+                        <div class="stats-card-label">⭐ סה"כ XP</div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-card-value">${pd.streak}</div>
+                        <div class="stats-card-label">🔥 סטריק נוכחי</div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-card-value">${longestStreak}</div>
+                        <div class="stats-card-label">🏆 סטריק שיא</div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-card-value">${totalLessons}</div>
+                        <div class="stats-card-label">📚 שיעורים</div>
+                    </div>
+                </div>
+
+                <div class="stats-section">
+                    <div class="stats-section-title">📅 פעילות השבוע</div>
+                    <div class="weekly-chart">
+                        ${weeklyBarsHtml}
+                    </div>
+                </div>
+
+                <div class="stats-section">
+                    <div class="stats-section-title">🎯 דיוק כללי: ${accuracyPct}%</div>
+                </div>
+
+                <div class="stats-section">
+                    <div class="stats-section-title">📊 דיוק לפי מודול</div>
+                    <div class="module-accuracy">
+                        ${moduleAccuracyHtml}
+                    </div>
+                </div>
+
+                <div class="stats-section">
+                    <div class="stats-section-title">⭐ שיעורים מושלמים</div>
+                    <div class="perfect-lessons">
+                        ${perfectHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.hideProgressBar();
+        this.hideFooter();
+    }
+
+    // ═══════════════════════════════════════
+    // Star Burst Animation (correct answer)
+    // ═══════════════════════════════════════
+    createStarBurst() {
+        const container = document.createElement('div');
+        container.className = 'star-burst-container';
+        document.body.appendChild(container);
+
+        for (let i = 0; i < 10; i++) {
+            const star = document.createElement('div');
+            star.className = 'star-particle';
+            star.textContent = '⭐';
+            const angle = (i / 10) * 360;
+            const distance = 60 + Math.random() * 80;
+            star.style.setProperty('--angle', angle + 'deg');
+            star.style.setProperty('--distance', distance + 'px');
+            star.style.animationDelay = (Math.random() * 0.1) + 's';
+            container.appendChild(star);
+        }
+
+        setTimeout(() => container.remove(), 800);
+    }
+
+    // ═══════════════════════════════════════
+    // Animated XP Counter
+    // ═══════════════════════════════════════
+    animateCountUp(el, from, to, duration = 500) {
+        const start = performance.now();
+        const diff = to - from;
+        const animate = (now) => {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            el.textContent = Math.round(from + diff * eased);
+            if (progress < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+    }
+
+    // ═══════════════════════════════════════
+    // Level Up Celebration
+    // ═══════════════════════════════════════
+    showLevelUpCelebration(level) {
+        const overlay = document.getElementById('level-up-overlay');
+        const text = document.getElementById('level-up-text');
+        text.innerHTML = `
+            <div class="level-up-icon">🎉</div>
+            <div class="level-up-heading">!עלית לרמה ${level}</div>
+            <div class="level-up-name">${this.getLevelName(level)}</div>
+        `;
+        overlay.style.display = 'flex';
+
+        // Create confetti for level-up
+        const confettiContainer = document.createElement('div');
+        confettiContainer.className = 'confetti-container';
+        overlay.appendChild(confettiContainer);
+        const colors = ['#58CC02', '#1CB0F6', '#FF9600', '#FFC800', '#CE82FF', '#FF86D0', '#FF4B4B', '#7C5CFC'];
+        for (let i = 0; i < 50; i++) {
+            const c = document.createElement('div');
+            c.className = 'confetti-particle';
+            c.style.left = Math.random() * 100 + '%';
+            c.style.background = colors[Math.floor(Math.random() * colors.length)];
+            c.style.animationDelay = Math.random() * 1 + 's';
+            c.style.animationDuration = (2 + Math.random() * 2) + 's';
+            confettiContainer.appendChild(c);
+        }
+
+        this.sound.play('levelUp');
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            confettiContainer.remove();
+        }, 2500);
     }
 
     // ═══════════════════════════════════════
